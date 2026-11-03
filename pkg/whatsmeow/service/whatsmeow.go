@@ -403,6 +403,13 @@ func (w whatsmeowService) StartClient(cd *ClientData) {
 		}
 	}
 
+	// whatsmeow sends store.GetWAVersion() in the handshake, not DeviceProps.Version:
+	// without this the compiled-in version goes out and WhatsApp answers 405 once it
+	// deprecates it (evolution-foundation/evolution-go#228).
+	if version.Major != 0 && version.Minor != 0 && version.Patch != 0 {
+		store.SetWAVersion(store.WAVersionContainer{uint32(version.Major), uint32(version.Minor), uint32(version.Patch)})
+	}
+
 	// 🔒 FIX: Sempre criar logger, mesmo que WaDebug esteja vazio
 	// Usar "INFO" como nível mínimo para garantir que logs importantes apareçam
 	minLevel := w.config.WaDebug
