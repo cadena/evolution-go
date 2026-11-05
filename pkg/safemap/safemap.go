@@ -75,6 +75,24 @@ func (s *Map[T]) Delete(k string) {
 	delete(s.m, k)
 }
 
+// DeleteIf removes the key only when match accepts the value stored there, in
+// one step under the lock, and reports whether it did.
+//
+// A client that is being torn down must remove its OWN entry, never the one a
+// reconnect has already put in its place: a plain Lookup-then-Delete leaves a
+// window where the newer client's entry is the one deleted, and that client
+// keeps running with nothing pointing at it.
+func (s *Map[T]) DeleteIf(k string, match func(T) bool) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	v, ok := s.m[k]
+	if !ok || !match(v) {
+		return false
+	}
+	delete(s.m, k)
+	return true
+}
+
 // Len is the len(m) form.
 func (s *Map[T]) Len() int {
 	s.mu.RLock()
