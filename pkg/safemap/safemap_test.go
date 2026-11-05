@@ -58,6 +58,27 @@ func TestConcurrentAccess(t *testing.T) {
 	}
 }
 
+// TestDeleteIfKeepsANewerValue: the old owner of a key must not remove the value
+// that replaced it.
+func TestDeleteIfKeepsANewerValue(t *testing.T) {
+	old, newer := new(int), new(int)
+	m := New[*int]()
+	m.Set("key", newer)
+
+	if m.DeleteIf("key", func(v *int) bool { return v == old }) {
+		t.Fatal("deleted a value that was not the old one")
+	}
+	if m.Get("key") != newer {
+		t.Fatal("the newer value is gone")
+	}
+	if !m.DeleteIf("key", func(v *int) bool { return v == newer }) {
+		t.Fatal("did not delete its own value")
+	}
+	if m.DeleteIf("absent", func(*int) bool { return true }) {
+		t.Fatal("reported deleting an absent key")
+	}
+}
+
 // TestGetMissingKeyReturnsZero pins the behaviour the call sites relied on:
 // m[k] on an absent key yields the zero value, and Get must do the same —
 // otherwise swapping the call sites would have changed logic silently.
